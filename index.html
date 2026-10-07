@@ -20,7 +20,12 @@ h1 {
 
 #info {
   font-size: 20px;
+  margin-bottom: 10px;
+}
+
+#best {
   margin-bottom: 15px;
+  font-size: 18px;
 }
 
 #game {
@@ -48,7 +53,39 @@ h1 {
   justify-content: center;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 0 15px gold;
+  box-shadow: 0 0 18px gold;
+  animation: appear 0.15s ease-out;
+}
+
+.goldCoin {
+  background: #fff700;
+  box-shadow: 0 0 30px #fff700;
+  transform: scale(1.1);
+}
+
+@keyframes appear {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.pop {
+  animation: pop 0.25s ease-out;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(0);
+  }
 }
 
 button {
@@ -58,6 +95,7 @@ button {
   border-radius: 10px;
   font-size: 18px;
   cursor: pointer;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -72,15 +110,16 @@ button {
   ⏱️ Time: <span id="time">30</span>
 </div>
 
-<div>
-  🏆 Best: <span id="best">0</span>
+<div id="best">
+  🏆 Best: <span id="bestScore">0</span>
 </div>
 
 <div id="game"></div>
 
-<button onclick="startGame()">Start Game</button>
+<button onclick="startGame()">🚀 Start Game</button>
 
 <script>
+
 let score = 0;
 let time = 30;
 let coin;
@@ -88,7 +127,154 @@ let timer;
 let playing = false;
 
 let best = localStorage.getItem("coinRushBest") || 0;
-document.getElementById("best").textContent = best;
+
+document.getElementById("bestScore").textContent = best;
+
+
+/* صدای سکه */
+
+function coinSound() {
+
+  const audio = new (window.AudioContext || window.webkitAudioContext)();
+
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(700, audio.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    1200,
+    audio.currentTime + 0.08
+  );
+
+  gain.gain.setValueAtTime(0.15, audio.currentTime);
+  gain.gain.exponentialRampToValueAtTime(
+    0.001,
+    audio.currentTime + 0.15
+  );
+
+  oscillator.connect(gain);
+  gain.connect(audio.destination);
+
+  oscillator.start();
+  oscillator.stop(audio.currentTime + 0.15);
+}
+
+
+/* ساخت سکه */
 
 function createCoin() {
-  const game = document
+
+  const game = document.getElementById("game");
+
+  if (coin) {
+    coin.remove();
+  }
+
+  coin = document.createElement("div");
+
+  coin.className = "coin";
+
+  let golden = Math.random() < 0.15;
+
+  if (golden) {
+    coin.classList.add("goldCoin");
+    coin.textContent = "⭐";
+  } else {
+    coin.textContent = "🪙";
+  }
+
+  const x = Math.random() * (game.clientWidth - 55);
+  const y = Math.random() * (game.clientHeight - 55);
+
+  coin.style.left = x + "px";
+  coin.style.top = y + "px";
+
+  coin.onclick = function() {
+
+    if (!playing) return;
+
+    coinSound();
+
+    coin.classList.add("pop");
+
+    if (golden) {
+      score += 5;
+    } else {
+      score += 1;
+    }
+
+    document.getElementById("score").textContent = score;
+
+    setTimeout(() => {
+      createCoin();
+    }, 150);
+  };
+
+  game.appendChild(coin);
+}
+
+
+/* شروع بازی */
+
+function startGame() {
+
+  clearInterval(timer);
+
+  score = 0;
+  time = 30;
+  playing = true;
+
+  document.getElementById("score").textContent = "0";
+  document.getElementById("time").textContent = "30";
+
+  createCoin();
+
+  timer = setInterval(function() {
+
+    time--;
+
+    document.getElementById("time").textContent = time;
+
+    if (time <= 0) {
+
+      clearInterval(timer);
+
+      playing = false;
+
+      if (coin) {
+        coin.remove();
+      }
+
+      if (score > best) {
+
+        best = score;
+
+        localStorage.setItem(
+          "coinRushBest",
+          best
+        );
+
+        document.getElementById(
+          "bestScore"
+        ).textContent = best;
+
+        alert(
+          "🏆 NEW RECORD!\n\nScore: " + score
+        );
+
+      } else {
+
+        alert(
+          "⏰ GAME OVER!\n\nScore: " + score
+        );
+      }
+    }
+
+  }, 1000);
+}
+
+</script>
+
+</body>
+</html>
